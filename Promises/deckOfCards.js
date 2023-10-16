@@ -33,23 +33,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function getCardPile(deckid) {
-    return axios.get(deckOfCardsBaseUrl + `/${deckid}/pile/drawnCards/list/`).then(res => {
-      return res.data.piles.drawnCards.cards
-    }, err => {
-      console.log(err)
-    });
-  }
-
-  function addCardToPile(card) {
-    return axios.get(deckOfCardsBaseUrl + `/${deckId}/pile/drawnCards/add/?cards=${card.code}`)
-    .then(res => {
-      return res.data.deck_id
-    }, err => {
-      console.log(err)
-    });
-  }
-
   function getCardCssTransform() {
     const randomdeg = Math.floor(Math.random() * 90) - 45;
     return `rotate(${randomdeg}deg)`
@@ -67,33 +50,29 @@ document.addEventListener('DOMContentLoaded', function() {
     cardStack.appendChild(cardImg);
  }
  function outOfCardsHandler() {
-  document.querySelector('#drawCard').style.display = 'none';
-  document.body.addEventListener('click', function() {
-    reshuffleDeck(deckId)
-    .then(() => {
-      document.querySelectorAll('#cardStack img').forEach(img => img.remove());
-      document.querySelector('#drawCard').style.display = 'block';
-      getDeck();
-    })
-  }, { once: true });
-  return true;
+  return reshuffleDeck(deckId)
+      .then(() => {
+        document.querySelectorAll('#cardStack img').forEach(img => img.remove());
+        document.querySelector('#drawCard').style.display = 'block';
+      })
+      .then(getDeck)
  }
 function checkIfDeckIsEmpty() {
   if (cardStack.children.length >= 52) {
-   outOfCardsHandler()
-   return true;
+    document.querySelector('#drawCard').style.display = 'none';
+    document.body.addEventListener('click', function() {
+      return outOfCardsHandler()
+    }, { once: true });
   }
-  return false;
 }
   getDeck()
 
   document.querySelector('#drawCard').addEventListener('click', function() {
-    drawCard(deckId)
+    return drawCard(deckId)
     .then(card => {
-      addCardToPile(card)
       addCardToStack(card)
-      checkIfDeckIsEmpty()
     })
+    .then(checkIfDeckIsEmpty)
   })
 
 });

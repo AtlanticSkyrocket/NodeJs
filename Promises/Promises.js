@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Part 1
   const randomIntegers = Array.from({ length: 5 }, () => Math.floor(Math.random() * 101));
   const favoriteFacts = new Array(4);
-  const ulMultiFacts = $('.favorite-number-facts')
+  const uFavoriteFacts = $('.favorite-number-facts')
   
   function getSingleNumberFacts(num) {
       return axios.get(`http://numbersapi.com/${num}?json`).then(res => {
@@ -33,8 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   function addFactToUl(data, fact) {
-    let ul = $('.favorite-number-facts')
-    ul.append(`<li>${data.data.text}</li>`)
+    uFavoriteFacts.append(`<li>${data.data.text}</li>`)
   }
 
 
@@ -51,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log(err)
     })
   }
-});
+
 
 
 
@@ -126,3 +125,4 @@ document.addEventListener('DOMContentLoaded', function() {
   .then(getPileOfCards)
   .then(logCards)
 
+});
