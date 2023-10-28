@@ -1,21 +1,26 @@
 const express = require('express');
+const ExpressError = require('./expressError');
 
 const app = express();
 
-app.use((req, res, next) => {
-  console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url}`);
-  next();
-});
 
-function validateQueryNums(query) {
-  if(query.nums === undefined) return {isValid: false, message:'Please enter a list of numbers in the URL', code: 400};
+function validateNumsQueryParam(req, res, next) {
+  try{
+    console.log(req.query.nums);
+    if(req.query.nums === undefined)
+      throw new ExpressError('Please enter a list of numbers in the URL', 400);
 
-  const nums = query.nums.split(',').map(n => parseInt(n));
-  if(checkForNaNs(nums).allNums === false) return {isValid: false, message:`${checkForNaNs(nums).notNumbers.join(', ')} are not numbers`, code: 400};
+    const nums = req.query.nums.split(',');
 
-  return {isValid: true, nums: nums};
+    if(checkForNaNs(nums).allNums === false) 
+      throw new ExpressError(`'${checkForNaNs(nums).notNumbers.join(', ')}' are not numbers`, 400);
+
+    req.query.nums = nums.map(n => parseInt(n.trim()));
+    next();
+  } catch(e) {
+    next(e);
+  }
 }
-
 function checkForNaNs(nums) {
   const notNumbers = [];
   for (let num of nums) {
@@ -60,23 +65,38 @@ function getMode(nums) {
       modeObj[num] += 1;
     }
   }
-  let mode = Object.keys(modeObj)[0];
+
+  let modes = [];
+  let maxCount = 0;
+
   for (let key in modeObj) {
-    if (modeObj[key] > modeObj[mode]) {
-      mode = key;
+    if (modeObj[key] > maxCount) {
+      modes = [key];
+      maxCount = modeObj[key];
+    } else if (modeObj[key] === maxCount) {
+      modes.push(key);
     }
   }
-  return mode;
+
+  if (modes.length === 0 || modes.length === nums.length) {
+    return undefined;
+  } else {
+    return modes;
+  }
 }
+
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+
 app.get('/', (req, res) => {
-  console.log('running');
   return res.status(400).send('Please enter a list of numbers in the URL')
 });
 
-app.get('/all', (req, res) => {
-  const result = validateQueryNums(req.query);
-  const nums = result.nums;
-  if(!result.isValid) return res.status(result.code).send(result.message);
+app.get('/all', validateNumsQueryParam, (req, res) => {
+  const nums = req.query.nums;
 
   let mean = getMean(nums);
   let mode = getMode(nums);
@@ -91,36 +111,44 @@ app.get('/all', (req, res) => {
   return res.json(response);
 });
 
-app.get('/mean/:nums', (req, res) => {
-  const result = validateQueryNums(req.params);
-  const nums = result.nums;
-  if(!result.isValid) return res.status(result.code).send(result.message);
-
+app.get('/mean', validateNumsQueryParam, (req, res) => {
+  const nums = req.query.nums;
   let mean = getMean(nums);
 
   return res.send(`The mean is ${mean}`);
 });
 
-app.get('/median', (req, res) => {
-  const result = validateQueryNums(req.query);
-  const nums = result.nums;
-  if(!result.isValid) return res.status(result.code).send(result.message);
+app.get('/median', validateNumsQueryParam, (req, res) => {
+  const nums = req.query.nums;
 
   let median = getMedian(nums);
 
   return res.send(`The median is ${median}`);
 });
 
-app.get('/mode', (req, res) => {
-  const result = validateQueryNums(req.query);
-  const nums = result.nums;
-  if(!result.isValid) return res.status(result.code).send(result.message);
+app.get('/mode', validateNumsQueryParam, (req, res) => {
+  const nums = req.query.nums;
 
   let mode = getMode(nums);
 
   return res.send(`The mode is ${mode}`);
 });
 
+app.use((req, res, next) => {
+  const err = new ExpressError('Not Found', 404);
+  return next(err);
+});
+
+app.use((err, req, res, next) => {
+  let status = err.status || 500;
+  let message = err.msg;
+
+  return res.status(status).send(message);
+});
+
 app.listen(3000, () => {
   console.log('App on port 3000');
 });
+
+
+module.exports = app;
