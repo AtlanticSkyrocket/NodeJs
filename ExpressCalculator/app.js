@@ -16,9 +16,9 @@ function validateNumsQueryParam(req, res, next) {
       throw new ExpressError(`'${checkForNaNs(nums).notNumbers.join(', ')}' are not numbers`, 400);
 
     req.query.nums = nums.map(n => parseInt(n.trim()));
-    next();
+    return next();
   } catch(e) {
-    next(e);
+    return next(e);
   }
 }
 function checkForNaNs(nums) {
